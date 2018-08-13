@@ -117,7 +117,6 @@
 </body>
 <script>
     const {ipcRenderer} = require('electron');
-    require('./test/myfunc.js');
     const outOfDate = '你的预算计划已过期！请重新设置';
     const emptyData = '无预算计划！请配置月度计划';
     const TODAY = getToday();
@@ -279,7 +278,7 @@
                     data: vueData,
                     computed: {
                         imgUrl: function () {
-                            return vueData.needTips ? './localimg/arrow.png' : " ";
+                            return vueData.needTips ? './local-img/arrow.png' : " ";
                         }
                     },
                     methods: {
@@ -307,7 +306,7 @@
                 data: vueData,
                 computed: {
                     imgUrl: function () {
-                        return vueData.needTips ? './localimg/arrow.png' : " ";
+                        return vueData.needTips ? './local-img/arrow.png' : " ";
                     }
                 },
                 methods: {
