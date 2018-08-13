@@ -1,0 +1,328 @@
+<!--
+  ~ Copyright 2018 Hochikong
+  ~ All Rights Reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>MMM 预算管理软件</title>
+    <script src="local-lib/vue.js"></script>
+    <script src="local-lib/jquery.slim.min.js"></script>
+    <script src="local-lib/popper.min.js"></script>
+    <script src="local-lib/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="local-lib/bootstrap.min.css">
+    <style>
+        .topbar {
+            margin: 0.5%
+        }
+
+        .fixbar {
+            margin: 0.7%
+        }
+
+        .update_item {
+            margin: 1%
+        }
+    </style>
+</head>
+
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12" id="indexView">
+            <div class="row topbar">
+                <div class="col-md-12">
+                    <nav class="navbar navbar-expand-lg navbar-light bg-light static-top">
+                        <a class="navbar-brand" href="#">个人预算计算</a>
+                        <img :src="imgUrl">
+                        <button type="button" class="btn btn-sm btn-primary"
+                                onclick="window.location.href='config.html'">
+                            设置预算计划
+                        </button>
+                        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul class="navbar-nav">
+                                <li class="nav-item">
+                                    <!-- submenu -->
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="jumbotron">
+                        <h2>
+                            本日可使用余额：
+                        </h2>
+                        <h1 style="color: coral">{{ todayCredit }}</h1>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="row fixbar" id="user_input">
+                        <div class="col-md-12 btn btn-outline-secondary update_item">
+                            今日支出：
+                            <input type="number" v-model="addCost">
+                            <button type="button" class="btn btn-primary btnBlock" @click="appendDayCost">追加</button>
+                        </div>
+                        <div class="col-md-12 btn btn-outline-secondary update_item">
+                            修正总额：
+                            <input type="number" v-model="newTotal">
+                            <button type="button" class="btn btn-primary btnBlock" @click="fixRemain">修正</button>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div :class="[al,alCond,alDis]">
+                                <!-- <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
+                                  ×
+                                </button> -->
+                                <h4>
+                                    可支配余额：
+                                    <strong style="color: coral">{{ cacheRemain }}</strong>元
+                                </h4>
+                                <h4>
+                                    目标储蓄额：
+                                    <strong style="color: coral">{{ deposit }}</strong>元
+                                </h4>
+                                <h4>
+                                    本月还剩下：
+                                    <strong style="color: coral">{{ remain_days }}</strong>天
+                                </h4>
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    const {ipcRenderer} = require('electron');
+    require('./test/myfunc.js');
+    const outOfDate = '你的预算计划已过期！请重新设置';
+    const emptyData = '无预算计划！请配置月度计划';
+    const TODAY = getToday();
+
+    function getToday() {
+        // 获取当前时间
+        const current = new Date();
+        return {
+            day: current.getDate(),
+            month: current.getMonth() + 1,
+            year: current.getFullYear()
+        }
+    }
+
+    function generateCommu(head) {
+        // 生成请求体
+        if (head === 'query') {
+            return {head: 'query', body: 'none'};
+        } else if (head === 'update') {
+            return {head: 'update', body: vueData.userCache};
+        }
+    }
+
+    function queryCache() {
+        // 发送请求查询cache，不能直接用sendSync，ipcMain需要设置event.returnValue
+        ipcRenderer.send('RTOM', generateCommu('query'));
+    }
+
+    function writeCache() {
+        // 发送更新给main.js
+        ipcRenderer.send('RTOM', generateCommu('update'));
+    }
+
+    function dontNeedTips() {
+        vueData.needTips = false;
+    }
+
+    function remainDaysThisMonth(today) {
+        const todayObj = new Date(today.year, today.month, 0);
+        return todayObj.getDate() - today.day;
+    }
+
+    function updateMeta(userDataCache) {
+        let meta = userDataCache.meta;
+        meta.recordDay = TODAY.day;
+        meta.recordMonth = TODAY.month;
+        meta.recordYear = TODAY.year;
+        return userDataCache;
+    }
+
+    function updateDayAvgandCost(userDataCache) {
+        let user = userDataCache.user;
+        let remainDays = remainDaysThisMonth(TODAY);
+        user.dayCost = 0;
+        user.dayAverage = user.remain / remainDays;
+        user.daysRemain = remainDays;
+        return userDataCache;
+    }
+
+    function updateRemain(userDataCache) {
+        const cacheData = userDataCache.user;
+        cacheData.remain -= cacheData.dayCost;
+        return userDataCache;
+    }
+
+    function updateCache(cache) {
+        vueData.userCache = updateMeta(updateDayAvgandCost(updateRemain(cache)));
+    }
+
+    function cacheTOVueData() {
+        // 将不需要计算的属性从cache同步至vueData
+        const cache = vueData.userCache;
+        vueData.deposit = cache.user.deposit;
+        vueData.cacheRemain = cache.user.remain;
+        vueData.remain_days = cache.user.daysRemain;
+        vueData.todayCredit = (cache.user.dayAverage - cache.user.dayCost).toFixed(2);
+        vueData.alCond = cache.user.remain < cache.user.warn ? 'alert-danger' : 'alert-success';
+    }
+
+    function initalWork() {
+        const cacheMeta = vueData.userCache.meta;
+        if (cacheMeta.recordYear === TODAY.year && cacheMeta.recordMonth === TODAY.month) {
+            if (cacheMeta.recordDay < TODAY.day) {
+                // 此处满足同年同月但不同日且今天比记录日后
+                updateCache(vueData.userCache);
+                writeCache();
+                cacheTOVueData();
+                dontNeedTips();
+            } else if (cacheMeta.recordDay === TODAY.day) {
+                cacheTOVueData();
+                dontNeedTips();
+            } else {
+                alert(outOfDate);
+            }
+        } else {
+            alert(outOfDate);
+        }
+    }
+
+    function applyCostExec() {
+        vueData.userCache.user.dayCost += parseFloat(vueData.addCost);
+        writeCache();
+        vueData.addCost = 0;
+        ipcRenderer.on('MTORUpdateView', (event, arg) => {
+            vueData.exists = arg.exists;
+            vueData.userCache = arg.data;
+            initalWork();
+        });
+    }
+
+    function fixRemainExec() {
+        vueData.userCache.user.total = vueData.newTotal;
+        vueData.userCache.user.remain = vueData.newTotal - vueData.userCache.user.deposit;
+        vueData.userCache.user.dayAverage = vueData.userCache.user.remain / vueData.userCache.user.daysRemain;
+        writeCache();
+        vueData.newTotal = 0;
+        ipcRenderer.on('MTORUpdateView', (event, arg) => {
+            vueData.exists = arg.exists;
+            vueData.userCache = arg.data;
+            initalWork();
+        });
+    }
+
+
+    // -------------------------------------------------------
+
+    let vueData = {
+        // 基本属性
+        exists: false,
+        userCache: {name: 'jack'},
+        needTips: true,  // 判断要不要提醒用户设置预算
+        // ----交换属性----
+        newTotal: 0,  // 覆盖原来的total，最终同步到userCache
+        addCost: 0,  // 每次输入的额，要加到todayCost
+        // 使用计算属性 todayCredit
+        // ----被动属性----
+        deposit: 0,
+        todayCredit: 0,
+        alCond: 'alert-success',
+        cacheRemain: 0,  // 从userCache获取
+        remain_days: 0,  // 从userCache获取
+        al: 'alert',
+        alDis: 'alert-dismissable',
+    };
+
+    // --------------------------------------------------------
+    // 启动后的工作
+
+    queryCache();
+
+    ipcRenderer.on('MTOR', (event, arg) => {
+        if (arg.exists) {
+            vueData.exists = true;
+            vueData.userCache = arg.data;
+            initalWork();
+            if (typeof vueData.userCache === 'object') {
+                const vm0 = new Vue({
+                    el: "#indexView",
+                    data: vueData,
+                    computed: {
+                        imgUrl: function () {
+                            return vueData.needTips ? './localimg/arrow.png' : " ";
+                        }
+                    },
+                    methods: {
+                        appendDayCost: function () {
+                            applyCostExec();
+                            alert("已追加");
+                        },
+                        fixRemain: function () {
+                            fixRemainExec();
+                            alert("已修正");
+                        }
+                    }
+                });
+            }
+        } else {
+            vueData.exists = false;
+            vueData.userCache = arg.data;
+            alert(emptyData);
+            const allBtn = document.getElementsByClassName('btnBlock');
+            for (let i = 0; i < allBtn.length; i++) {
+                allBtn[i].setAttribute('disabled', 'disabled');
+            }
+            const vmfake = new Vue({
+                el: "#indexView",
+                data: vueData,
+                computed: {
+                    imgUrl: function () {
+                        return vueData.needTips ? './localimg/arrow.png' : " ";
+                    }
+                },
+                methods: {
+                    appendDayCost: function () {
+                        // do nothing
+                    },
+                    fixRemain: function () {
+                        // do nothing
+                    }
+                }
+            });
+        }
+    });
+
+
+</script>
+
+</html>

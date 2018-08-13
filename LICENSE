@@ -199,3 +199,19 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+
+   ------------------------------------------------------------------------------------
+   This product bundles various third-party components under other open source licenses.
+   This section summarizes those components and their licenses. See licenses/
+   for text of these licenses.
+
+
+   MIT License
+   -----------
+
+   local-lib/bootstrap.min.css
+   local-lib/bootstrap.min.js
+   local-lib/jquery.slim.min.js
+   local-lib/popper.min.js
+   local-lib/vue.js
