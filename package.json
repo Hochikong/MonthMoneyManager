@@ -1,7 +1,7 @@
 {
   "name": "month_money_manager",
   "productName": "MonthMoneyManager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MonthMoneyManager budget control tool",
   "main": "src/main.js",
   "scripts": {

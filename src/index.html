@@ -102,7 +102,7 @@
                                     <strong style="color: coral">{{ deposit }}</strong>元
                                 </h4>
                                 <h4>
-                                    本月还剩下：
+                                    本月还剩（含今日）：
                                     <strong style="color: coral">{{ remain_days }}</strong>天
                                 </h4>
                                 </h4>
@@ -169,7 +169,7 @@
 
     function updateDayAvgandCost(userDataCache) {
         let user = userDataCache.user;
-        let remainDays = remainDaysThisMonth(TODAY);
+        let remainDays = remainDaysThisMonth(TODAY)+1;
         user.dayCost = 0;
         user.dayAverage = user.remain / remainDays;
         user.daysRemain = remainDays;

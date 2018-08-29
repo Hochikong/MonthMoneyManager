@@ -141,7 +141,7 @@
                 deposit: tmp.currentMonthSave,
                 warn: tmp.currentMonthWarn,
                 remain: tmp.currentMonthBudget - tmp.currentMonthSave,
-                dayAverage: (tmp.currentMonthBudget - tmp.currentMonthSave) / dayRemain(),
+                dayAverage: (tmp.currentMonthBudget - tmp.currentMonthSave) / (dayRemain()+1),
                 dayCost: 0,
                 daysRemain: dayRemain(),
             }
@@ -170,7 +170,7 @@
             return true;
         }
         const response = remote.dialog.showMessageBox(remote.getCurrentWindow(), {
-            message: 'Do you want to save the current document?',
+            message: '是否要覆盖现有预算计划？',
             type: 'question',
             buttons: ['Yes', 'No']
         });

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="test">
+    请写您的名字
+    <input type="text" v-model="rawInput">
+    <button type="button" @click="Persistence">click me</button>
+</div>
+</body>
+<script>
+    const vueD = {
+        rawInput: undefined,
+    };
+
+    const saveD = {
+        userName: undefined,
+    };
+
+    const proxy = new Proxy(saveD,{
+        set: function (obj, prop, value) {
+            if (prop === 'rawInput'){
+                obj['userName'] = value;
+            }else{
+                throw new TypeError('you should set the rawInput');
+            }
+        }
+    });
+
+    const vm = new Vue({
+        el:"#test",
+        data: vueD,
+        methods:{
+            Persistence:function () {
+                // send the saveD to ipcMain and save to local file
+            }
+        },
+        watch:{
+            rawInput: function (val, oldVal) {
+                proxy['rawInput'] = val;
+                console.log(oldVal);
+            }
+        }
+    });
+
+</script>
+</html>
